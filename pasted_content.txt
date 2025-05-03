@@ -1,0 +1,26 @@
+Crie um aplicativo web usando tecnologias node (backend) e react (frontend), com uma interface de usuário agradável, com o título "Prospecção de clientes para Links". O aplicativo ajudará no processo de prospecção de novos clientes para serviços de links de Internet ou ponto a ponto (lan to lan), considerando empresas que estão instaladas próximas à malha de fibra existente ou aos clientes já instalados. 
+
+O sistema deverá contar com as seguintes funcionalidades:
+- Importação de arquivo KML contendo a malha de fibra existente. A importação deverá adicionar apenas novas fibras no banco de dados e atualizar com os novos campos as fibras já existentes. (opção do menu 3.1. Importar Malha)
+- Pegar coordenadas (latitude e longitude) a partir de um endereço (endereço + complemento + bairro + cidade + UF + CEP). Deverá ter uma opção dentro dos cadastro de clientes e de prospects, para pegar as coordenadas latitude e longitude e preencher os campos respectivos do registro atual, quando clicar no botão [Pegar Coordenadas].
+- No cadastro de fibra criar CRUD com os seguintes campos: Nome da fibra (Texto,40), quantidade de fo (Num,2,0), propriedade (Texto, 20). (opção do menu 1.1. Cadastro de Fibra)
+- No cadastro de clientes criar CRUD com os seguintes campos: Nome (Texto,100), Endereço (Texto,100), Complemento (Texto,40), Bairro (Texto,40), Cidade (Texto, 40), UF (Texto,2), CEP (Texto, 6), Segmento (Texto, 40), Executivo (Texto,40), Servico (Texto, 40), DataContrato (Date), Latitude (Texto,20), Longitude (Texto, 20). (opção do menu 1.2. Cadastro de Clientes)
+- No cadastro de prospects criar CRUD com os seguintes campos: Nome (Texto,100), Endereço (Texto,100), Complemento (Texto,40), Bairro (Texto,40), Cidade (Texto, 40), UF (Texto,2), CEP (Texto, 6), Segmento (Texto, 40), Executivo (Texto,40), Servico (Texto, 40), DataProspeccao (Date), Latitude (Texto,20), Longitude (Texto, 20). (opção do menu 1.3. Cadastro de Prospects)
+- Gerar Mapa de Calor a partir da malha de fibra instalada. O usuário deve selecionar a fibra desejada (pode marcar mais de uma) e informar a largura em metros. O aplicativo deverá criar um mapa de calor em torno das fibras selecionadas na largura em metros informada, e exibir no mapa. O sistema deverá adicionar duas opções clicáveis no rodapé do mapa [Identificar Prospects] e [Salvar Prospects] (opção do menu 2.1. Gerar HeatMap por Fibra)
+- Gerar Mapa de Calor a partir do Cliente. O usuário deve selecionar o bairro desejado (pode marcar mais de um) e informar a largura em metros. O aplicativo deverá criar um mapa de calor em torno dos clientes daquele(s) bairro(s) na largura em metros informada, e exibir no mapa. O sistema deverá adicionar duas opções clicáveis no rodapé do mapa [Identificar Prospects] e [Salvar Prospects]. (opção do menu 2.2. Gerar HeatMap por Cliente)
+- Opção [Identificar Prospects] ao ser clicada, irá identificar empresas instaladas dentro do HeatMap e plotar um Pin no mapa. Quando o usuário clicar sobre o pin de cada prospect, deverá exibir em uma janela, o nome e segmento do prospect.
+- Opção [Salvar Prospects] ao ser clicada, deverá exibir um quadro com a listagem de segmentos identificados para o usuário selecionar um, vários ou todos os segmentos. Ao confirmar, os prospects dos segmentos selecionados deverá serem salvos no banco de dados, tabela de prospects. Caso o prospect já exista no banco de dados, não salvar.
+- No cadastro de usuários criar CRUD com os seguintes campos: Nome (Texto,40), email (Texto,60), SenhaHash (Texto,200). (opção do menu 3.2. Cadastro de Usuários)
+- O sistema deverá utilizar a API do Google Maps.
+
+A interface web deve ser baseada em bootstrap e contar um menu de opções à esquerda, que pode ser fixado ou reduzido. As seguintes opções devem estar disponíveis na primeira versão:
+1. Cadastro
+1.1. Cadastro da Fibra
+1.2. Cadastro de Clientes
+1.3. Cadastro de Prospects
+2. Prospecção
+2.1. Gerar HeatMap por Fibra
+2.2. Gerar HeatMap por Cliente
+3. Manutenção
+3.1. Importar Malha
+3.2. Cadastro de Usuários

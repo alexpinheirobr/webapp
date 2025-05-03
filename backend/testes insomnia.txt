@@ -1,0 +1,13 @@
+POST: http://localhost:5000/api/clientes
+
+{ 
+	"nome": "cliente teste",
+	"endereco": "endereco xzy, 100",
+	"bairro": "centro",
+	"cidade": "cidade teste",
+	"uf":	"ce",
+	"cep": "60000-000",
+	"segmento": "varejo",
+	"executivo": "chico",
+	"servico": "outsourcing de firewall"
+}

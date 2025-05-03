@@ -1,0 +1,101 @@
+.sidebar {
+  background-color: #f8f9fa;
+  min-height: 100vh;
+  padding: 0;
+  border-right: 1px solid #dee2e6;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-header {
+  padding: 15px;
+  border-bottom: 1px solid #dee2e6;
+  margin-bottom: 15px;
+  background-color: #fff;
+}
+
+.logo-container {
+  margin-bottom: 15px;
+  padding: 10px 0;
+}
+
+.sidebar-logo {
+  max-width: 150px;
+  height: auto;
+  display: block;
+}
+
+.app-title {
+  color: #333;
+  font-size: 1rem;
+  font-weight: bold;
+  margin-top: 10px;
+  line-height: 1.2;
+}
+
+/* Estilos para os itens do Accordion */
+.accordion {
+  flex: 1;
+  font-size: 0.8rem;
+  overflow-y: auto;
+}
+
+.accordion-button {
+  color: #333;
+  background-color: #f8f9fa;
+  padding: 10px 15px;
+}
+
+.accordion-button:not(.collapsed) {
+  color: #0d6efd;
+  background-color: #e7f1ff;
+}
+
+.accordion-body {
+  padding: 0;
+}
+
+/* Estilos para os links de navegação */
+.nav-link {
+  color: #333 !important;
+  padding: 8px 15px 8px 30px !important;
+  transition: all 0.3s ease;
+}
+
+.nav-link:hover {
+  color: #0d6efd !important;
+  background-color: #e7f1ff;
+}
+
+.nav-link.active {
+  color: #0d6efd !important;
+  background-color: #e7f1ff;
+  font-weight: bold;
+}
+
+/* Estilos para o footer do sidebar  */ 
+.sidebar-footer {
+  padding: 15px;
+  border-top: 1px solid #dee2e6;
+  margin-top: auto;
+  width: 100%;
+}
+
+.sidebar-footer .nav-link {
+  color: #dc3545 !important;
+  padding: 8px 15px !important;
+  display: block;
+  text-align: left;
+}
+
+.sidebar-footer .nav-link:hover {
+  color: #bb2d3b !important;
+  background-color: #f8d7da;
+}
+
+/* Ajuste do tamanho da fonte dos títulos do menu e do link Sair */
+.accordion-button,
+.sidebar-footer .nav-link {
+  font-size: 0.8rem !important;
+} 
