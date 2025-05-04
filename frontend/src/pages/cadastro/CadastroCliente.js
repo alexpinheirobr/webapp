@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { Container, Row, Col, Form, Button, Table, Modal, Alert } from 'react-bootstrap';
 import clienteService from '../../services/clienteService';
+import geocodeService from '../../services/geocodeService';
 
 function CadastroCliente() {
   const [clientes, setClientes] = useState([]);
@@ -18,6 +19,7 @@ function CadastroCliente() {
     handleSubmit,
     reset,
     setValue,
+    getValues,
     formState: { errors }
   } = useForm({
     defaultValues: {
@@ -63,6 +65,10 @@ function CadastroCliente() {
   const onSubmit = async (data) => {
     try {
       setLoading(true);
+
+      if (data.latitude === '') data.latitude = null;
+      if (data.longitude === '') data.longitude = null;
+      if (data.dataContrato === '') data.dataContrato = null;
 
       if (editMode) {
         await clienteService.updateClient(currentId, data);
@@ -120,7 +126,31 @@ function CadastroCliente() {
   };
 
   const getCoordinates = async () => {
-    // Implementação da função getCoordinates aqui
+    setGeoLoading(true);
+    try {
+      const values = getValues();
+      const { endereco, complemento, bairro, cidade, uf, cep } = values;
+      const result = await geocodeService.getCoordinates(endereco, complemento, bairro, cidade, uf, cep);
+      setValue('latitude', result.latitude);
+      setValue('longitude', result.longitude);
+      showAlert('success', 'Coordenadas obtidas com sucesso!');
+    } catch (error) {
+      showAlert('danger', 'Não foi possível obter as coordenadas. Verifique o endereço.');
+    }
+    setGeoLoading(false);
+  };
+
+  const handleUfChange = (e) => {
+    const upperUf = e.target.value.toUpperCase();
+    setValue('uf', upperUf);
+  };
+
+  const handleCepChange = (e) => {
+    let value = e.target.value.replace(/\D/g, '');
+    if (value.length > 5) {
+      value = value.replace(/^(\d{5})(\d)/, '$1-$2');
+    }
+    setValue('cep', value);
   };
 
   return (
@@ -233,6 +263,7 @@ function CadastroCliente() {
                       minLength: { value: 2, message: 'UF deve ter 2 caracteres' },
                       pattern: { value: /^[A-Za-z]{2}$/, message: 'UF deve conter apenas letras' }
                     })}
+                    onChange={handleUfChange}
                   />
                   <Form.Control.Feedback type="invalid">
                     {errors.uf?.message}
@@ -243,14 +274,14 @@ function CadastroCliente() {
                   <Form.Control
                     type="text"
                     placeholder="CEP"
-                    maxLength={8}
+                    maxLength={9}
                     isInvalid={!!errors.cep}
                     {...register('cep', {
-                      required: 'CEP é obrigatório',
-                      maxLength: { value: 8, message: 'Máximo de 8 caracteres' },
-                      minLength: { value: 8, message: 'CEP deve ter 8 caracteres' },
-                      pattern: { value: /^[0-9]{8}$/, message: 'CEP deve conter apenas números' }
+                      maxLength: { value: 9, message: 'Máximo de 9 caracteres' },
+                      minLength: { value: 9, message: 'CEP deve ter 9 caracteres' },
+                      pattern: { value: /^[0-9]{5}-[0-9]{3}$/, message: 'CEP deve estar no formato 99999-999' }
                     })}
+                    onChange={handleCepChange}
                   />
                   <Form.Control.Feedback type="invalid">
                     {errors.cep?.message}
@@ -317,9 +348,7 @@ function CadastroCliente() {
               <Form.Control
                 type="date"
                 isInvalid={!!errors.dataContrato}
-                {...register('dataContrato', {
-                  required: 'Data do contrato é obrigatória'
-                })}
+                {...register('dataContrato')}
               />
               <Form.Control.Feedback type="invalid">
                 {errors.dataContrato?.message}
