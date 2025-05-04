@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { Container, Row, Col, Form, Button, Table, Modal, Alert } from 'react-bootstrap';
-import axios from 'axios';
+import prospectService from '../../services/prospectService';
 
 function CadastroProspect() {
   const [prospects, setProspects] = useState([]);
@@ -18,6 +18,7 @@ function CadastroProspect() {
     handleSubmit,
     reset,
     setValue,
+    getValues,
     formState: { errors }
   } = useForm({
     defaultValues: {
@@ -44,45 +45,9 @@ function CadastroProspect() {
   const fetchProspects = async () => {
     try {
       setLoading(true);
-      // Simulação de chamada à API - será substituída pela chamada real
-      setTimeout(() => {
-        const mockProspects = [
-          { 
-            _id: '1', 
-            nome: 'Empresa Potencial 1', 
-            endereco: 'Rua Augusta, 500', 
-            complemento: 'Sala 50', 
-            bairro: 'Consolação', 
-            cidade: 'São Paulo', 
-            uf: 'SP', 
-            cep: '01304', 
-            segmento: 'Educação', 
-            executivo: 'Carlos Mendes', 
-            servico: 'Link Dedicado 50Mbps', 
-            dataProspeccao: '2023-04-10', 
-            latitude: '-23.553140', 
-            longitude: '-46.642710' 
-          },
-          { 
-            _id: '2', 
-            nome: 'Empresa Potencial 2', 
-            endereco: 'Av. Brigadeiro Faria Lima, 2000', 
-            complemento: 'Andar 15', 
-            bairro: 'Jardim Paulistano', 
-            cidade: 'São Paulo', 
-            uf: 'SP', 
-            cep: '01451', 
-            segmento: 'Financeiro', 
-            executivo: 'Ana Oliveira', 
-            servico: 'Link Dedicado 100Mbps', 
-            dataProspeccao: '2023-04-15', 
-            latitude: '-23.567250', 
-            longitude: '-46.693080' 
-          }
-        ];
-        setProspects(mockProspects);
-        setLoading(false);
-      }, 500);
+      const data = await prospectService.getAllProspects();
+      setProspects(data);
+      setLoading(false);
     } catch (error) {
       console.error('Erro ao buscar prospects:', error);
       showAlert('danger', 'Erro ao carregar dados de prospects.');
@@ -101,26 +66,17 @@ function CadastroProspect() {
       setLoading(true);
 
       if (editMode) {
-        setTimeout(() => {
-          const updatedProspects = prospects.map(prospect =>
-            prospect._id === currentId ? { ...prospect, ...data } : prospect
-          );
-          setProspects(updatedProspects);
-          handleReset();
-          showAlert('success', 'Prospect atualizado com sucesso!');
-          setLoading(false);
-        }, 500);
+        await prospectService.updateProspect(currentId, data);
+        await fetchProspects();
+        handleReset();
+        showAlert('success', 'Prospect atualizado com sucesso!');
+        setLoading(false);
       } else {
-        setTimeout(() => {
-          const newProspect = {
-            _id: Date.now().toString(),
-            ...data
-          };
-          setProspects([...prospects, newProspect]);
-          handleReset();
-          showAlert('success', 'Prospect cadastrado com sucesso!');
-          setLoading(false);
-        }, 500);
+        await prospectService.createProspect(data);
+        await fetchProspects();
+        handleReset();
+        showAlert('success', 'Prospect cadastrado com sucesso!');
+        setLoading(false);
       }
     } catch (error) {
       console.error('Erro ao salvar prospect:', error);
@@ -134,20 +90,17 @@ function CadastroProspect() {
       setValue(key, prospect[key] || '');
     });
     setEditMode(true);
-    setCurrentId(prospect._id);
+    setCurrentId(prospect.id || prospect._id);
   };
 
   const handleDelete = async () => {
     try {
       setLoading(true);
-      
-      setTimeout(() => {
-        const updatedProspects = prospects.filter(prospect => prospect._id !== deleteId);
-        setProspects(updatedProspects);
-        setShowModal(false);
-        showAlert('success', 'Prospect removido com sucesso!');
-        setLoading(false);
-      }, 500);
+      await prospectService.deleteProspect(deleteId);
+      await fetchProspects();
+      setShowModal(false);
+      showAlert('success', 'Prospect removido com sucesso!');
+      setLoading(false);
     } catch (error) {
       console.error('Erro ao excluir prospect:', error);
       showAlert('danger', 'Erro ao remover prospect.');

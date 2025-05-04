@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { Container, Row, Col, Form, Button, Table, Modal, Alert } from 'react-bootstrap';
-import axios from 'axios';
 import clienteService from '../../services/clienteService';
 
 function CadastroCliente() {
@@ -45,44 +44,9 @@ function CadastroCliente() {
   const fetchClientes = async () => {
     try {
       setLoading(true);
-      setTimeout(() => {
-        const mockClientes = [
-          { 
-            _id: '1', 
-            nome: 'Empresa ABC', 
-            endereco: 'Rua das Flores, 123', 
-            complemento: 'Sala 101', 
-            bairro: 'Centro', 
-            cidade: 'São Paulo', 
-            uf: 'SP', 
-            cep: '01234', 
-            segmento: 'Tecnologia', 
-            executivo: 'João Silva', 
-            servico: 'Link Dedicado 100Mbps', 
-            dataContrato: '2023-01-15', 
-            latitude: '-23.550520', 
-            longitude: '-46.633308' 
-          },
-          { 
-            _id: '2', 
-            nome: 'Empresa XYZ', 
-            endereco: 'Av. Paulista, 1000', 
-            complemento: 'Andar 10', 
-            bairro: 'Bela Vista', 
-            cidade: 'São Paulo', 
-            uf: 'SP', 
-            cep: '01310', 
-            segmento: 'Financeiro', 
-            executivo: 'Maria Souza', 
-            servico: 'Link Dedicado 200Mbps', 
-            dataContrato: '2023-02-20', 
-            latitude: '-23.561370', 
-            longitude: '-46.655010' 
-          }
-        ];
-        setClientes(mockClientes);
-        setLoading(false);
-      }, 500);
+      const data = await clienteService.getAllClients();
+      setClientes(data);
+      setLoading(false);
     } catch (error) {
       console.error('Erro ao buscar clientes:', error);
       showAlert('danger', 'Erro ao carregar dados de clientes.');
@@ -101,18 +65,14 @@ function CadastroCliente() {
       setLoading(true);
 
       if (editMode) {
-        setTimeout(() => {
-          const updatedClientes = clientes.map(cliente =>
-            cliente._id === currentId ? { ...cliente, ...data } : cliente
-          );
-          setClientes(updatedClientes);
-          handleReset();
-          showAlert('success', 'Cliente atualizado com sucesso!');
-          setLoading(false);
-        }, 500);
+        await clienteService.updateClient(currentId, data);
+        await fetchClientes();
+        handleReset();
+        showAlert('success', 'Cliente atualizado com sucesso!');
+        setLoading(false);
       } else {
-        const response = await clienteService.createClient(data);
-        setClientes([...clientes, response]);
+        await clienteService.createClient(data);
+        await fetchClientes();
         handleReset();
         showAlert('success', 'Cliente cadastrado com sucesso!');
         setLoading(false);
@@ -129,19 +89,17 @@ function CadastroCliente() {
       setValue(key, cliente[key] || '');
     });
     setEditMode(true);
-    setCurrentId(cliente._id);
+    setCurrentId(cliente.id || cliente._id);
   };
 
   const handleDelete = async () => {
     try {
       setLoading(true);
-      setTimeout(() => {
-        const updatedClientes = clientes.filter(cliente => cliente._id !== deleteId);
-        setClientes(updatedClientes);
-        setShowModal(false);
-        showAlert('success', 'Cliente removido com sucesso!');
-        setLoading(false);
-      }, 500);
+      await clienteService.deleteClient(deleteId);
+      await fetchClientes();
+      setShowModal(false);
+      showAlert('success', 'Cliente removido com sucesso!');
+      setLoading(false);
     } catch (error) {
       console.error('Erro ao excluir cliente:', error);
       showAlert('danger', 'Erro ao remover cliente.');

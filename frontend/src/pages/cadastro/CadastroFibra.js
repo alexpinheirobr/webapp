@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { Container, Row, Col, Form, Button, Table, Modal, Alert } from 'react-bootstrap';
-import axios from 'axios';
+import fibraService from '../../services/fibraService';
 
 function CadastroFibra() {
   const [fibras, setFibras] = useState([]);
@@ -33,15 +33,9 @@ function CadastroFibra() {
   const fetchFibras = async () => {
     try {
       setLoading(true);
-      setTimeout(() => {
-        const mockFibras = [
-          { _id: '1', nome: 'Fibra Centro', quantidadeFo: 24, propriedade: 'Própria' },
-          { _id: '2', nome: 'Fibra Norte', quantidadeFo: 12, propriedade: 'Alugada' },
-          { _id: '3', nome: 'Fibra Sul', quantidadeFo: 36, propriedade: 'Própria' }
-        ];
-        setFibras(mockFibras);
-        setLoading(false);
-      }, 500);
+      const data = await fibraService.getAllFibras();
+      setFibras(data);
+      setLoading(false);
     } catch (error) {
       console.error('Erro ao buscar fibras:', error);
       showAlert('danger', 'Erro ao carregar dados de fibras.');
@@ -95,26 +89,17 @@ function CadastroFibra() {
       };
 
       if (editMode) {
-        setTimeout(() => {
-          const updatedFibras = fibras.map(fibra =>
-            fibra._id === currentId ? { ...fibra, ...fibraData } : fibra
-          );
-          setFibras(updatedFibras);
-          handleReset();
-          showAlert('success', 'Fibra atualizada com sucesso!');
-          setLoading(false);
-        }, 500);
+        await fibraService.updateFibra(currentId, fibraData);
+        await fetchFibras();
+        handleReset();
+        showAlert('success', 'Fibra atualizada com sucesso!');
+        setLoading(false);
       } else {
-        setTimeout(() => {
-          const newFibra = {
-            _id: Date.now().toString(),
-            ...fibraData
-          };
-          setFibras([...fibras, newFibra]);
-          handleReset();
-          showAlert('success', 'Fibra cadastrada com sucesso!');
-          setLoading(false);
-        }, 500);
+        await fibraService.createFibra(fibraData);
+        await fetchFibras();
+        handleReset();
+        showAlert('success', 'Fibra cadastrada com sucesso!');
+        setLoading(false);
       }
     } catch (error) {
       console.error('Erro ao salvar fibra:', error);
