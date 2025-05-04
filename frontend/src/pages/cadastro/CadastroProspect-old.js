@@ -1,10 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
 import { Container, Row, Col, Form, Button, Table, Modal, Alert } from 'react-bootstrap';
 import axios from 'axios';
 
 function CadastroProspect() {
   const [prospects, setProspects] = useState([]);
+  const [formData, setFormData] = useState({
+    nome: '',
+    endereco: '',
+    complemento: '',
+    bairro: '',
+    cidade: '',
+    uf: '',
+    cep: '',
+    segmento: '',
+    executivo: '',
+    servico: '',
+    dataProspeccao: '',
+    latitude: '',
+    longitude: ''
+  });
   const [editMode, setEditMode] = useState(false);
   const [currentId, setCurrentId] = useState('');
   const [showModal, setShowModal] = useState(false);
@@ -12,30 +26,6 @@ function CadastroProspect() {
   const [alert, setAlert] = useState({ show: false, variant: '', message: '' });
   const [loading, setLoading] = useState(false);
   const [geoLoading, setGeoLoading] = useState(false);
-
-  const {
-    register,
-    handleSubmit,
-    reset,
-    setValue,
-    formState: { errors }
-  } = useForm({
-    defaultValues: {
-      nome: '',
-      endereco: '',
-      complemento: '',
-      bairro: '',
-      cidade: '',
-      uf: '',
-      cep: '',
-      segmento: '',
-      executivo: '',
-      servico: '',
-      dataProspeccao: '',
-      latitude: '',
-      longitude: ''
-    }
-  });
 
   useEffect(() => {
     fetchProspects();
@@ -90,23 +80,44 @@ function CadastroProspect() {
     }
   };
 
-  const handleReset = () => {
-    reset();
+  const resetForm = () => {
+    setFormData({
+      nome: '',
+      endereco: '',
+      complemento: '',
+      bairro: '',
+      cidade: '',
+      uf: '',
+      cep: '',
+      segmento: '',
+      executivo: '',
+      servico: '',
+      dataProspeccao: '',
+      latitude: '',
+      longitude: ''
+    });
     setEditMode(false);
     setCurrentId('');
   };
 
-  const onSubmit = async (data) => {
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
     try {
       setLoading(true);
-
+      
       if (editMode) {
         setTimeout(() => {
-          const updatedProspects = prospects.map(prospect =>
-            prospect._id === currentId ? { ...prospect, ...data } : prospect
+          const updatedProspects = prospects.map(prospect => 
+            prospect._id === currentId ? { ...prospect, ...formData } : prospect
           );
           setProspects(updatedProspects);
-          handleReset();
+          resetForm();
           showAlert('success', 'Prospect atualizado com sucesso!');
           setLoading(false);
         }, 500);
@@ -114,10 +125,10 @@ function CadastroProspect() {
         setTimeout(() => {
           const newProspect = {
             _id: Date.now().toString(),
-            ...data
+            ...formData
           };
           setProspects([...prospects, newProspect]);
-          handleReset();
+          resetForm();
           showAlert('success', 'Prospect cadastrado com sucesso!');
           setLoading(false);
         }, 500);
@@ -130,8 +141,20 @@ function CadastroProspect() {
   };
 
   const handleEdit = (prospect) => {
-    Object.keys(prospect).forEach((key) => {
-      setValue(key, prospect[key] || '');
+    setFormData({
+      nome: prospect.nome,
+      endereco: prospect.endereco,
+      complemento: prospect.complemento,
+      bairro: prospect.bairro,
+      cidade: prospect.cidade,
+      uf: prospect.uf,
+      cep: prospect.cep,
+      segmento: prospect.segmento,
+      executivo: prospect.executivo,
+      servico: prospect.servico,
+      dataProspeccao: prospect.dataProspeccao,
+      latitude: prospect.latitude,
+      longitude: prospect.longitude
     });
     setEditMode(true);
     setCurrentId(prospect._id);
@@ -170,18 +193,22 @@ function CadastroProspect() {
   const getCoordinates = async () => {
     try {
       setGeoLoading(true);
+      
       // Verificar se os campos de endereço estão preenchidos
-      const values = ['endereco', 'bairro', 'cidade', 'uf'].map((field) => {
-        return (typeof getValues === 'function' ? getValues(field) : '');
-      });
-      if (values.some(v => !v)) {
+      if (!formData.endereco || !formData.bairro || !formData.cidade || !formData.uf) {
         showAlert('warning', 'Preencha os campos de endereço para obter as coordenadas.');
         setGeoLoading(false);
         return;
       }
+      
+      // Simulação de geocodificação - será substituída pela chamada real à API
       setTimeout(() => {
-        setValue('latitude', '-23.550520');
-        setValue('longitude', '-46.633308');
+        // Coordenadas simuladas para São Paulo
+        setFormData(prev => ({
+          ...prev,
+          latitude: '-23.550520',
+          longitude: '-46.633308'
+        }));
         showAlert('success', 'Coordenadas obtidas com sucesso!');
         setGeoLoading(false);
       }, 1000);
@@ -200,91 +227,71 @@ function CadastroProspect() {
         <Alert variant={alert.variant}>{alert.message}</Alert>
       )}
       
-      <Form onSubmit={handleSubmit(onSubmit)}>
+      <Form onSubmit={handleSubmit}>
         <Row>
           <Col md={6}>
             <Form.Group className="mb-3">
               <Form.Label>Nome</Form.Label>
               <Form.Control
                 type="text"
+                name="nome"
                 placeholder="Digite o nome do prospect"
+                value={formData.nome}
+                onChange={handleChange}
                 maxLength={100}
-                isInvalid={!!errors.nome}
-                {...register('nome', {
-                  required: 'Nome é obrigatório',
-                  maxLength: { value: 100, message: 'Máximo de 100 caracteres' }
-                })}
+                required
               />
-              <Form.Control.Feedback type="invalid">
-                {errors.nome?.message}
-              </Form.Control.Feedback>
             </Form.Group>
             
             <Form.Group className="mb-3">
               <Form.Label>Endereço</Form.Label>
               <Form.Control
                 type="text"
+                name="endereco"
                 placeholder="Digite o endereço"
+                value={formData.endereco}
+                onChange={handleChange}
                 maxLength={100}
-                isInvalid={!!errors.endereco}
-                {...register('endereco', {
-                  required: 'Endereço é obrigatório',
-                  maxLength: { value: 100, message: 'Máximo de 100 caracteres' }
-                })}
+                required
               />
-              <Form.Control.Feedback type="invalid">
-                {errors.endereco?.message}
-              </Form.Control.Feedback>
             </Form.Group>
             
             <Form.Group className="mb-3">
               <Form.Label>Complemento</Form.Label>
               <Form.Control
                 type="text"
+                name="complemento"
                 placeholder="Digite o complemento"
+                value={formData.complemento}
+                onChange={handleChange}
                 maxLength={40}
-                isInvalid={!!errors.complemento}
-                {...register('complemento', {
-                  maxLength: { value: 40, message: 'Máximo de 40 caracteres' }
-                })}
               />
-              <Form.Control.Feedback type="invalid">
-                {errors.complemento?.message}
-              </Form.Control.Feedback>
             </Form.Group>
             
             <Form.Group className="mb-3">
               <Form.Label>Bairro</Form.Label>
               <Form.Control
                 type="text"
+                name="bairro"
                 placeholder="Digite o bairro"
+                value={formData.bairro}
+                onChange={handleChange}
                 maxLength={40}
-                isInvalid={!!errors.bairro}
-                {...register('bairro', {
-                  required: 'Bairro é obrigatório',
-                  maxLength: { value: 40, message: 'Máximo de 40 caracteres' }
-                })}
+                required
               />
-              <Form.Control.Feedback type="invalid">
-                {errors.bairro?.message}
-              </Form.Control.Feedback>
             </Form.Group>
             
             <Form.Group className="mb-3">
               <Form.Label>Cidade</Form.Label>
               <Form.Control
                 type="text"
+                name="cidade"
                 placeholder="Digite a cidade"
+                value={formData.cidade}
+                onChange={handleChange}
                 maxLength={40}
-                isInvalid={!!errors.cidade}
-                {...register('cidade', {
-                  required: 'Cidade é obrigatória',
-                  maxLength: { value: 40, message: 'Máximo de 40 caracteres' }
-                })}
+                required
               />
-              <Form.Control.Feedback type="invalid">
-                {errors.cidade?.message}
-              </Form.Control.Feedback>
             </Form.Group>
             
             <Form.Group className="mb-3">
@@ -293,37 +300,25 @@ function CadastroProspect() {
                   <Form.Label>UF</Form.Label>
                   <Form.Control
                     type="text"
+                    name="uf"
                     placeholder="UF"
+                    value={formData.uf}
+                    onChange={handleChange}
                     maxLength={2}
-                    isInvalid={!!errors.uf}
-                    {...register('uf', {
-                      required: 'UF é obrigatória',
-                      maxLength: { value: 2, message: 'Máximo de 2 caracteres' },
-                      minLength: { value: 2, message: 'UF deve ter 2 caracteres' },
-                      pattern: { value: /^[A-Za-z]{2}$/, message: 'UF deve conter apenas letras' }
-                    })}
+                    required
                   />
-                  <Form.Control.Feedback type="invalid">
-                    {errors.uf?.message}
-                  </Form.Control.Feedback>
                 </Col>
                 <Col md={6}>
                   <Form.Label>CEP</Form.Label>
                   <Form.Control
                     type="text"
+                    name="cep"
                     placeholder="CEP"
+                    value={formData.cep}
+                    onChange={handleChange}
                     maxLength={8}
-                    isInvalid={!!errors.cep}
-                    {...register('cep', {
-                      required: 'CEP é obrigatório',
-                      maxLength: { value: 8, message: 'Máximo de 8 caracteres' },
-                      minLength: { value: 8, message: 'CEP deve ter 8 caracteres' },
-                      pattern: { value: /^[0-9]{8}$/, message: 'CEP deve conter apenas números' }
-                    })}
+                    required
                   />
-                  <Form.Control.Feedback type="invalid">
-                    {errors.cep?.message}
-                  </Form.Control.Feedback>
                 </Col>
               </Row>
             </Form.Group>
@@ -334,65 +329,50 @@ function CadastroProspect() {
               <Form.Label>Segmento</Form.Label>
               <Form.Control
                 type="text"
+                name="segmento"
                 placeholder="Digite o segmento"
+                value={formData.segmento}
+                onChange={handleChange}
                 maxLength={40}
-                isInvalid={!!errors.segmento}
-                {...register('segmento', {
-                  required: 'Segmento é obrigatório',
-                  maxLength: { value: 40, message: 'Máximo de 40 caracteres' }
-                })}
+                required
               />
-              <Form.Control.Feedback type="invalid">
-                {errors.segmento?.message}
-              </Form.Control.Feedback>
             </Form.Group>
             
             <Form.Group className="mb-3">
               <Form.Label>Executivo</Form.Label>
               <Form.Control
                 type="text"
+                name="executivo"
                 placeholder="Digite o executivo responsável"
+                value={formData.executivo}
+                onChange={handleChange}
                 maxLength={40}
-                isInvalid={!!errors.executivo}
-                {...register('executivo', {
-                  required: 'Executivo é obrigatório',
-                  maxLength: { value: 40, message: 'Máximo de 40 caracteres' }
-                })}
+                required
               />
-              <Form.Control.Feedback type="invalid">
-                {errors.executivo?.message}
-              </Form.Control.Feedback>
             </Form.Group>
             
             <Form.Group className="mb-3">
               <Form.Label>Serviço</Form.Label>
               <Form.Control
                 type="text"
+                name="servico"
                 placeholder="Digite o serviço potencial"
+                value={formData.servico}
+                onChange={handleChange}
                 maxLength={40}
-                isInvalid={!!errors.servico}
-                {...register('servico', {
-                  required: 'Serviço é obrigatório',
-                  maxLength: { value: 40, message: 'Máximo de 40 caracteres' }
-                })}
+                required
               />
-              <Form.Control.Feedback type="invalid">
-                {errors.servico?.message}
-              </Form.Control.Feedback>
             </Form.Group>
             
             <Form.Group className="mb-3">
               <Form.Label>Data da Prospecção</Form.Label>
               <Form.Control
                 type="date"
-                isInvalid={!!errors.dataProspeccao}
-                {...register('dataProspeccao', {
-                  required: 'Data da prospecção é obrigatória'
-                })}
+                name="dataProspeccao"
+                value={formData.dataProspeccao}
+                onChange={handleChange}
+                required
               />
-              <Form.Control.Feedback type="invalid">
-                {errors.dataProspeccao?.message}
-              </Form.Control.Feedback>
             </Form.Group>
             
             <Form.Group className="mb-3">
@@ -401,47 +381,30 @@ function CadastroProspect() {
                   <Form.Label>Latitude</Form.Label>
                   <Form.Control
                     type="text"
+                    name="latitude"
                     placeholder="Latitude"
+                    value={formData.latitude}
+                    onChange={handleChange}
                     maxLength={20}
-                    isInvalid={!!errors.latitude}
-                    {...register('latitude', {
-                      maxLength: { value: 20, message: 'Máximo de 20 caracteres' },
-                      pattern: {
-                        value: /^-?\d+(\.\d+)?$/,
-                        message: 'Latitude deve ser um número válido'
-                      }
-                    })}
                   />
-                  <Form.Control.Feedback type="invalid">
-                    {errors.latitude?.message}
-                  </Form.Control.Feedback>
                 </Col>
                 <Col md={5}>
                   <Form.Label>Longitude</Form.Label>
                   <Form.Control
                     type="text"
+                    name="longitude"
                     placeholder="Longitude"
+                    value={formData.longitude}
+                    onChange={handleChange}
                     maxLength={20}
-                    isInvalid={!!errors.longitude}
-                    {...register('longitude', {
-                      maxLength: { value: 20, message: 'Máximo de 20 caracteres' },
-                      pattern: {
-                        value: /^-?\d+(\.\d+)?$/,
-                        message: 'Longitude deve ser um número válido'
-                      }
-                    })}
                   />
-                  <Form.Control.Feedback type="invalid">
-                    {errors.longitude?.message}
-                  </Form.Control.Feedback>
                 </Col>
                 <Col md={2} className="d-flex align-items-end">
-                  <Button
-                    variant="secondary"
+                  <Button 
+                    variant="secondary" 
                     className="mb-3 w-100"
                     onClick={getCoordinates}
                     disabled={geoLoading}
-                    type="button"
                   >
                     {geoLoading ? 'Buscando...' : 'Pegar Coordenadas'}
                   </Button>
@@ -456,7 +419,7 @@ function CadastroProspect() {
             {loading ? 'Salvando...' : (editMode ? 'Atualizar' : 'Cadastrar')}
           </Button>
           {editMode && (
-            <Button variant="secondary" className="ms-2" onClick={handleReset} disabled={loading}>
+            <Button variant="secondary" className="ms-2" onClick={resetForm} disabled={loading}>
               Cancelar
             </Button>
           )}
