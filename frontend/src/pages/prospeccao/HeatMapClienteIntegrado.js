@@ -242,8 +242,8 @@ function HeatMapClienteIntegrado() {
   }
 
   return (
-    <Container>
-      <h2 className="mb-4">Gerar HeatMap por Cliente</h2>
+    <Container className="cadastro-root">
+      <h2 className="mb-4">Gerar HeatMap Integrado por Cliente</h2>
       
       {alert.show && (
         <Alert variant={alert.variant} onClose={() => setAlert({ show: false })} dismissible>

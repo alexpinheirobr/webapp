@@ -111,7 +111,7 @@ const HeatMapCliente = () => {
   };
 
   return (
-    <Container>
+    <Container className="cadastro-root">
       <h2 className="mb-4">Gerar HeatMap por Cliente</h2>
       
       {alert.show && (

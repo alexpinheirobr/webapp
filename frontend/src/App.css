@@ -103,3 +103,10 @@ body {
   bottom: 0;
   width: 100%;
 }
+
+.cadastro-root {
+  font-size: 90%;
+}
+.cadastro-root h2 {
+  font-size: 1.8rem;
+}

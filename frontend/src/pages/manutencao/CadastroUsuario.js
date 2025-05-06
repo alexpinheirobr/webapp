@@ -132,7 +132,7 @@ function CadastroUsuario() {
   };
 
   return (
-    <Container>
+    <Container className="cadastro-root">
       <h2 className="mb-4">Cadastro de Usuários</h2>
       
       {alert.show && (
