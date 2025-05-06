@@ -6,6 +6,7 @@ import MapComponent from '../../components/MapComponent';
 import ProspectMapComponent from '../../components/ProspectMapComponent';
 import heatmapService from '../../services/heatmapService';
 import prospectService from '../../services/prospectService';
+import clientService from '../../services/clienteService';
 
 const mapContainerStyle = {
   width: '100%',
@@ -39,41 +40,33 @@ function HeatMapClienteIntegrado() {
     lat: -3.7319,
     lng: -38.5267
   });
+  const [clientes, setClientes] = useState([]);
+  const [selectedClientes, setSelectedClientes] = useState([]);
 
   useEffect(() => {
-    fetchBairros();
+    fetchClientes();
   }, []);
 
-  const fetchBairros = async () => {
+  const fetchClientes = async () => {
     try {
       setLoading(true);
-      // Simulação de chamada à API - será substituída pela chamada real
-      setTimeout(() => {
-        const mockBairros = [
-          'Centro',
-          'Bela Vista',
-          'Jardim Paulista',
-          'Consolação',
-          'Pinheiros',
-          'Vila Mariana',
-          'Moema'
-        ];
-        setBairros(mockBairros);
-        setLoading(false);
-      }, 500);
+      const data = await clientService.getAllClients();
+      data.sort((a, b) => a.nome.localeCompare(b.nome, 'pt', { sensitivity: 'base' }));
+      setClientes(data);
+      setLoading(false);
     } catch (error) {
-      console.error('Erro ao buscar bairros:', error);
-      showAlert('danger', 'Erro ao carregar dados de bairros.');
+      console.error('Erro ao buscar clientes:', error);
+      showAlert('danger', 'Erro ao carregar dados de clientes.');
       setLoading(false);
     }
   };
 
-  const handleBairroSelection = (bairro) => {
-    setSelectedBairros(prev => {
-      if (prev.includes(bairro)) {
-        return prev.filter(b => b !== bairro);
+  const handleClienteSelection = (clienteId) => {
+    setSelectedClientes(prev => {
+      if (prev.includes(clienteId)) {
+        return prev.filter(id => id !== clienteId);
       } else {
-        return [...prev, bairro];
+        return [...prev, clienteId];
       }
     });
   };
@@ -88,35 +81,29 @@ function HeatMapClienteIntegrado() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (selectedBairros.length === 0) {
-      showAlert('warning', 'Por favor, selecione pelo menos um bairro.');
+    if (selectedClientes.length === 0) {
+      showAlert('warning', 'Por favor, selecione pelo menos um cliente.');
       return;
     }
     
     try {
       setMapLoading(true);
       
-      // Simulação de geração de mapa de calor - será substituída pela chamada real à API
-      setTimeout(() => {
-        // Dados simulados para o mapa de calor
-        const mockHeatmapData = [
-          { lat: -23.550520, lng: -46.633308, weight: 1 },
-          { lat: -23.551520, lng: -46.634308, weight: 1 },
-          { lat: -23.552520, lng: -46.635308, weight: 1 },
-          { lat: -23.553520, lng: -46.636308, weight: 1 },
-          { lat: -23.554520, lng: -46.637308, weight: 1 },
-          { lat: -23.555520, lng: -46.638308, weight: 1 },
-          { lat: -23.556520, lng: -46.639308, weight: 1 },
-          { lat: -23.557520, lng: -46.640308, weight: 1 },
-          { lat: -23.558520, lng: -46.641308, weight: 1 },
-          { lat: -23.559520, lng: -46.642308, weight: 1 }
-        ];
+      // Chamada real para gerar o heatmap com os clientes selecionados
+      const selectedClientObjects = clientes.filter(c => selectedClientes.includes(String(c.id)));
+      // Exemplo: supondo que cada cliente tem latitude/longitude
+      const realHeatmapData = selectedClientObjects
+        .filter(c => c.latitude && c.longitude)
+        .map(c => ({
+          lat: parseFloat(c.latitude),
+          lng: parseFloat(c.longitude),
+          weight: 1
+        }));
         
-        setHeatmapData(mockHeatmapData);
-        setMapGerado(true);
-        setMapLoading(false);
-        showAlert('success', 'Mapa de calor gerado com sucesso!');
-      }, 1500);
+      setHeatmapData(realHeatmapData);
+      setMapGerado(true);
+      setMapLoading(false);
+      showAlert('success', 'Mapa de calor gerado com sucesso!');
     } catch (error) {
       console.error('Erro ao gerar mapa de calor:', error);
       showAlert('danger', 'Erro ao gerar mapa de calor.');
@@ -258,15 +245,15 @@ function HeatMapClienteIntegrado() {
             <Card.Body>
               <Form onSubmit={handleSubmit}>
                 <Form.Group className="mb-3">
-                  <Form.Label>Bairros</Form.Label>
+                  <Form.Label>Clientes</Form.Label>
                   <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
-                    {bairros.map((bairro) => (
+                    {clientes.map((cliente) => (
                       <Form.Check
-                        key={bairro}
+                        key={cliente.id}
                         type="checkbox"
-                        label={bairro}
-                        checked={selectedBairros.includes(bairro)}
-                        onChange={() => handleBairroSelection(bairro)}
+                        label={cliente.nome}
+                        checked={selectedClientes.includes(cliente.id)}
+                        onChange={() => handleClienteSelection(cliente.id)}
                       />
                     ))}
                   </div>
