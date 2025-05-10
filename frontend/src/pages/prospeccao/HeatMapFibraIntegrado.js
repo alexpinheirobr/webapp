@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Form, Button, Card, Alert, ListGroup, Modal } from 'react-bootstrap';
-import { GoogleMap, useJsApiLoader, HeatmapLayer } from '@react-google-maps/api';
+import { GoogleMap, HeatmapLayer } from '@react-google-maps/api';
 import googleMapsConfig from '../../config/googleMapsConfig';
 import fibraService from '../../services/fibraService';
+import { useGoogleMaps } from '../../hooks/useGoogleMaps';
 
 const mapContainerStyle = {
   width: '100%',
@@ -12,10 +13,7 @@ const mapContainerStyle = {
 const libraries = ['places', 'visualization', 'drawing', 'geometry'];
 
 function HeatMapFibraIntegrado() {
-  const { isLoaded, loadError } = useJsApiLoader({
-    googleMapsApiKey: googleMapsConfig.apiKey,
-    libraries: libraries,
-  });
+  const { isLoaded, loadError } = useGoogleMaps();
 
   const [map, setMap] = React.useState(null);
   const [fibras, setFibras] = useState([]);

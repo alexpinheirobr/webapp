@@ -1,3 +1,8 @@
+/* global google */
+
+/* setores para prospectar:
+automativo, escritório corporativo, educação, lazer e recreação, finanças, alimentos e bebidas, governo, saúde e bem estar, habitação, hospedagem, advocacia, shopping, transporte, serviços.
+*/
 import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Form, Button, Card, Alert, ListGroup, Modal } from 'react-bootstrap';
 import { GoogleMap, useJsApiLoader, HeatmapLayer } from '@react-google-maps/api';
@@ -13,13 +18,64 @@ const mapContainerStyle = {
   height: '500px'
 };
 
-const libraries = ['places', 'visualization', 'drawing', 'geometry'];
+const SETORES = [
+  'Automotivo',
+  'Escritório Corporativo',
+  'Educação',
+  'Lazer e Recreação',
+  'Finanças',
+  'Alimentos e Bebidas',
+  'Governo',
+  'Saúde e Bem Estar',
+  'Habitação',
+  'Hospedagem',
+  'Advocacia',
+  'Shopping',
+  'Transporte',
+  'Serviços'
+];
+
+function getCenterOfPoints(points) {
+  if (points.length === 0) return { lat: -3.7319, lng: -38.5267 };
+  const lat = points.reduce((sum, p) => sum + p.lat, 0) / points.length;
+  const lng = points.reduce((sum, p) => sum + p.lng, 0) / points.length;
+  return { lat, lng };
+}
+
+function generateFilledCirclePoints(lat, lng, radiusMeters, numRings = 10, pointsPerRing = 36) {
+  const points = [];
+  const earthRadius = 6378137; // raio da Terra em metros
+
+  for (let ring = 0; ring <= numRings; ring++) {
+    const currentRadius = (radiusMeters * ring) / numRings;
+    const dLat = currentRadius / earthRadius;
+    const dLng = currentRadius / (earthRadius * Math.cos(Math.PI * lat / 180));
+    const numPoints = ring === 0 ? 1 : pointsPerRing * ring;
+
+    for (let i = 0; i < numPoints; i++) {
+      const angle = (i / numPoints) * 2 * Math.PI;
+      const latOffset = dLat * Math.sin(angle);
+      const lngOffset = dLng * Math.cos(angle);
+      points.push({
+        lat: lat + (latOffset * 180 / Math.PI),
+        lng: lng + (lngOffset * 180 / Math.PI),
+        weight: 1
+      });
+    }
+  }
+  return points;
+}
 
 function HeatMapClienteIntegrado() {
   const { isLoaded, loadError } = useJsApiLoader({
-    googleMapsApiKey: googleMapsConfig.apiKey,
-    libraries: libraries,
+    googleMapsApiKey: 'AIzaSyBjPUWZRGVXyAGqG5Bv7NtkhziOf55C_ms',
+    libraries: ['places', 'visualization'],
+    language: 'pt-BR',
+    region: 'BR'
   });
+
+  // Adicione um log para verificar o estado de carregamento
+  console.log('Estado de carregamento do mapa:', { isLoaded, loadError });
 
   const [map, setMap] = React.useState(null);
   const [bairros, setBairros] = useState([]);
@@ -36,16 +92,31 @@ function HeatMapClienteIntegrado() {
   const [segmentos, setSegmentos] = useState([]);
   const [selectedSegmentos, setSelectedSegmentos] = useState([]);
   const [saveLoading, setSaveLoading] = useState(false);
-  const [center] = useState({
+  const [center, setCenter] = useState({
     lat: -3.7319,
     lng: -38.5267
   });
   const [clientes, setClientes] = useState([]);
   const [selectedClientes, setSelectedClientes] = useState([]);
+  const [selectedSetores, setSelectedSetores] = useState([]);
+  const [quantidadeProspects, setQuantidadeProspects] = useState(10);
+  const [prospectsEncontrados, setProspectsEncontrados] = useState([]);
+  const [identificandoProspects, setIdentificandoProspects] = useState(false);
+  const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
     fetchClientes();
   }, []);
+
+  useEffect(() => {
+    if (isLoaded) {
+      console.log('Google Maps API carregada');
+      const timer = setTimeout(() => {
+        setIsReady(true);
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [isLoaded]);
 
   const fetchClientes = async () => {
     try {
@@ -80,83 +151,156 @@ function HeatMapClienteIntegrado() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (selectedClientes.length === 0) {
       showAlert('warning', 'Por favor, selecione pelo menos um cliente.');
       return;
     }
+
+    setMapLoading(true);
+
+    // Filtra os clientes selecionados
+    const selectedClientObjects = clientes.filter(c => selectedClientes.includes(c.id));
+
+    // Verifica se algum cliente tem coordenadas
+    const clientesComCoordenadas = selectedClientObjects.filter(c => c.latitude && c.longitude);
     
-    try {
-      setMapLoading(true);
-      
-      // Chamada real para gerar o heatmap com os clientes selecionados
-      const selectedClientObjects = clientes.filter(c => selectedClientes.includes(String(c.id)));
-      // Exemplo: supondo que cada cliente tem latitude/longitude
-      const realHeatmapData = selectedClientObjects
-        .filter(c => c.latitude && c.longitude)
-        .map(c => ({
-          lat: parseFloat(c.latitude),
-          lng: parseFloat(c.longitude),
-          weight: 1
-        }));
-        
-      setHeatmapData(realHeatmapData);
-      setMapGerado(true);
+    if (clientesComCoordenadas.length === 0) {
+      showAlert('warning', 'Não é possível gerar mapa de calor sem coordenadas geográficas.');
       setMapLoading(false);
-      showAlert('success', 'Mapa de calor gerado com sucesso!');
-    } catch (error) {
-      console.error('Erro ao gerar mapa de calor:', error);
-      showAlert('danger', 'Erro ao gerar mapa de calor.');
-      setMapLoading(false);
+      return;
     }
+
+    // Gera os pontos do heatmap para cada cliente selecionado
+    let realHeatmapData = [];
+    clientesComCoordenadas.forEach(c => {
+      const circlePoints = generateFilledCirclePoints(
+        parseFloat(c.latitude),
+        parseFloat(c.longitude),
+        larguraMetros
+      );
+      realHeatmapData = realHeatmapData.concat(circlePoints);
+    });
+
+    // Centraliza o mapa no centro dos clientes selecionados
+    let newCenter = { lat: -3.7319, lng: -38.5267 };
+    if (clientesComCoordenadas.length === 1) {
+      newCenter = {
+        lat: parseFloat(clientesComCoordenadas[0].latitude),
+        lng: parseFloat(clientesComCoordenadas[0].longitude)
+      };
+    } else if (clientesComCoordenadas.length > 1) {
+      // Calcula o centro médio dos clientes selecionados
+      const lat = clientesComCoordenadas.reduce((sum, c) => sum + parseFloat(c.latitude), 0) / clientesComCoordenadas.length;
+      const lng = clientesComCoordenadas.reduce((sum, c) => sum + parseFloat(c.longitude), 0) / clientesComCoordenadas.length;
+      newCenter = { lat, lng };
+    }
+
+    setHeatmapData(realHeatmapData);
+    setCenter(newCenter);
+    setMapGerado(true);
+    setMapLoading(false);
+    showAlert('success', 'Mapa de calor gerado com sucesso!');
   };
 
   const handleIdentificarProspects = async () => {
     try {
-      setMapLoading(true);
+      setIdentificandoProspects(true);
       showAlert('info', 'Identificando prospects no mapa de calor...');
-      
-      // Simulação de identificação de prospects - será substituída pela chamada real à API
-      setTimeout(() => {
-        // Dados simulados de prospects identificados
-        const mockProspects = [
-          {
-            id: '1',
-            nome: 'Empresa Potencial A',
-            segmento: 'Tecnologia',
-            lat: -23.553140,
-            lng: -46.642710
-          },
-          {
-            id: '2',
-            nome: 'Empresa Potencial B',
-            segmento: 'Saúde',
-            lat: -23.557250,
-            lng: -46.643080
-          },
-          {
-            id: '3',
-            nome: 'Empresa Potencial C',
-            segmento: 'Educação',
-            lat: -23.550520,
-            lng: -46.633308
-          }
-        ];
-        
-        // Extrair segmentos únicos
-        const uniqueSegmentos = [...new Set(mockProspects.map(p => p.segmento))];
-        
-        setProspects(mockProspects);
-        setSegmentos(uniqueSegmentos);
-        setSelectedSegmentos(uniqueSegmentos); // Selecionar todos por padrão
-        setShowProspects(true);
-        setMapLoading(false);
-        showAlert('success', `${mockProspects.length} prospects identificados!`);
-      }, 1500);
+
+      // Verificando se o mapa está realmente disponível
+      if (!isLoaded || !window.google || !window.google.maps) {
+        console.log('Erro: API do Google Maps não está carregada');
+        showAlert('warning', 'A API do Google Maps não está carregada. Por favor, aguarde.');
+        return;
+      }
+
+      if (!mapGerado) {
+        console.log('Erro: Mapa de calor não foi gerado');
+        showAlert('warning', 'Por favor, gere o mapa de calor primeiro.');
+        return;
+      }
+
+      if (!selectedSetores.length) {
+        console.log('Erro: Nenhum setor selecionado');
+        showAlert('warning', 'Por favor, selecione pelo menos um setor para prospectar.');
+        return;
+      }
+
+      // Criando o serviço do Places com um elemento HTML
+      const placesService = new window.google.maps.places.PlacesService(document.createElement('div'));
+
+      const prospects = [];
+      const promises = [];
+
+      // Para cada setor selecionado, buscar lugares próximos
+      for (const setor of selectedSetores) {
+        const request = {
+          location: new window.google.maps.LatLng(center.lat, center.lng),
+          radius: larguraMetros,
+          type: getGooglePlaceType(setor),
+          language: 'pt-BR'
+        };
+
+        console.log(`Buscando lugares para o setor ${setor}:`, request);
+
+        const promise = new Promise((resolve, reject) => {
+          placesService.nearbySearch(request, (results, status) => {
+            console.log(`Resultado da busca para ${setor}:`, { status, resultsCount: results?.length });
+            
+            if (status === window.google.maps.places.PlacesServiceStatus.OK && results) {
+              const placePromises = results.slice(0, quantidadeProspects).map(place => {
+                return new Promise((resolvePlace) => {
+                  placesService.getDetails({
+                    placeId: place.place_id,
+                    fields: ['name', 'formatted_address', 'formatted_phone_number', 'geometry']
+                  }, (placeDetails, detailsStatus) => {
+                    console.log(`Detalhes do lugar ${place.place_id}:`, { detailsStatus });
+                    
+                    if (detailsStatus === window.google.maps.places.PlacesServiceStatus.OK && placeDetails) {
+                      resolvePlace({
+                        id: place.place_id,
+                        nome: placeDetails.name,
+                        endereco: placeDetails.formatted_address || 'Endereço não disponível',
+                        segmento: setor,
+                        telefone: placeDetails.formatted_phone_number || 'Não disponível',
+                        lat: placeDetails.geometry.location.lat(),
+                        lng: placeDetails.geometry.location.lng()
+                      });
+                    } else {
+                      resolvePlace(null);
+                    }
+                  });
+                });
+              });
+
+              Promise.all(placePromises).then(placeResults => {
+                resolve(placeResults.filter(Boolean));
+              });
+            } else {
+              console.log(`Erro na busca para ${setor}:`, status);
+              resolve([]);
+            }
+          });
+        });
+
+        promises.push(promise);
+      }
+
+      const results = await Promise.all(promises);
+      const allProspects = results.flat().slice(0, quantidadeProspects);
+
+      console.log('Prospects encontrados:', allProspects);
+
+      setProspectsEncontrados(allProspects);
+      setShowProspects(true);
+      showAlert('success', `${allProspects.length} prospects identificados!`);
+
     } catch (error) {
       console.error('Erro ao identificar prospects:', error);
       showAlert('danger', 'Erro ao identificar prospects.');
-      setMapLoading(false);
+    } finally {
+      setIdentificandoProspects(false);
     }
   };
 
@@ -199,12 +343,103 @@ function HeatMapClienteIntegrado() {
   };
 
   const onLoad = React.useCallback(function callback(map) {
+    console.log('Mapa carregado:', map);
     setMap(map);
   }, []);
 
   const onUnmount = React.useCallback(function callback() {
+    if (map && typeof map.setMap === 'function') {
+      map.setMap(null);
+    }
     setMap(null);
-  }, []);
+  }, [map]);
+
+  const handleSetorSelection = (setor) => {
+    setSelectedSetores(prev => {
+      if (prev.includes(setor)) {
+        return prev.filter(s => s !== setor);
+      } else {
+        return [...prev, setor];
+      }
+    });
+  };
+
+  // Função auxiliar para converter setores em tipos do Google Places
+  const getGooglePlaceType = (setor) => {
+    const typeMap = {
+      'Automotivo': 'car_dealer',
+      'Escritório Corporativo': 'office',
+      'Educação': 'school',
+      'Lazer e Recreação': 'amusement_park',
+      'Finanças': 'bank',
+      'Alimentos e Bebidas': 'restaurant',
+      'Governo': 'local_government_office',
+      'Saúde e Bem Estar': 'health',
+      'Habitação': 'lodging',
+      'Hospedagem': 'lodging',
+      'Advocacia': 'lawyer',
+      'Shopping': 'shopping_mall',
+      'Transporte': 'transit_station',
+      'Serviços': 'point_of_interest'
+    };
+    return typeMap[setor] || 'point_of_interest';
+  };
+
+  // Função para excluir um prospect
+  const handleExcluirProspect = (prospectId) => {
+    setProspectsEncontrados(prev => prev.filter(p => p.id !== prospectId));
+  };
+
+  useEffect(() => {
+    return () => {
+      // Limpar o estado quando o componente for desmontado
+      if (map && typeof map.setMap === 'function') {
+        map.setMap(null);
+      }
+      setMap(null);
+      setHeatmapData([]);
+      setProspectsEncontrados([]);
+      setShowProspects(false);
+    };
+  }, [map]);
+
+  // Renderização condicional do mapa
+  const renderMap = () => {
+    if (!isLoaded || !isReady) {
+      return (
+        <div className="text-center p-5">
+          Carregando mapa...
+        </div>
+      );
+    }
+
+    return (
+      <GoogleMap
+        mapContainerStyle={mapContainerStyle}
+        center={center}
+        zoom={15}
+        onLoad={onLoad}
+        onUnmount={onUnmount}
+      >
+        {mapGerado && heatmapData.length > 0 && (
+          <HeatmapLayer
+            data={heatmapData.map(point => new window.google.maps.LatLng(point.lat, point.lng))}
+            options={{
+              radius: 40,
+              opacity: 0.5,
+              gradient: [
+                'rgba(255, 100, 100, 0)',
+                'rgba(255, 100, 100, 0.3)',
+                'rgba(255, 100, 100, 0.5)',
+                'rgba(255, 100, 100, 0.7)',
+                'rgba(255, 100, 100, 0.9)'
+              ]
+            }}
+          />
+        )}
+      </GoogleMap>
+    );
+  };
 
   if (loadError) {
     return (
@@ -213,16 +448,6 @@ function HeatMapClienteIntegrado() {
           Erro ao carregar o mapa. Por favor, verifique a chave da API e tente novamente.
           <br />
           Detalhes: {loadError.message}
-        </div>
-      </Container>
-    );
-  }
-
-  if (!isLoaded) {
-    return (
-      <Container>
-        <div className="text-center p-5">
-          Carregando mapa...
         </div>
       </Container>
     );
@@ -284,50 +509,112 @@ function HeatMapClienteIntegrado() {
 
         <Col md={8}>
           <div style={{ height: '500px', width: '100%' }}>
-            <GoogleMap
-              mapContainerStyle={mapContainerStyle}
-              center={center}
-              zoom={12}
-              onLoad={onLoad}
-              onUnmount={onUnmount}
-            >
-              {mapGerado && heatmapData.length > 0 && (
-                <HeatmapLayer
-                  data={heatmapData.map(point => ({
-                    location: new window.google.maps.LatLng(point.lat, point.lng),
-                    weight: point.weight
-                  }))}
-                  options={{
-                    radius: 20,
-                    opacity: 0.7
-                  }}
-                />
-              )}
-            </GoogleMap>
+            {renderMap()}
           </div>
         </Col>
       </Row>
 
-      {mapGerado && (
-        <div className="d-flex justify-content-end mt-3">
-          <Button 
-            variant="success" 
-            className="me-2"
-            onClick={handleIdentificarProspects}
-            disabled={mapLoading}
-          >
-            {showProspects ? 'Atualizar Prospects' : 'Identificar Prospects'}
-          </Button>
-          {showProspects && (
-            <Button 
-              variant="primary"
-              onClick={handleSalvarProspects}
-              disabled={mapLoading}
-            >
-              Salvar Prospects
-            </Button>
-          )}
-        </div>
+      <Row className="mt-4">
+        <Col>
+          <Card>
+            <Card.Header>Setores para Prospectar</Card.Header>
+            <Card.Body>
+              <div className="table-responsive">
+                <table className="table table-bordered">
+                  <tbody>
+                    {Array.from({ length: 7 }).map((_, rowIndex) => (
+                      <tr key={rowIndex}>
+                        <td>
+                          <Form.Check
+                            type="checkbox"
+                            id={`setor-${SETORES[rowIndex]}`}
+                            label={SETORES[rowIndex]}
+                            checked={selectedSetores.includes(SETORES[rowIndex])}
+                            onChange={() => handleSetorSelection(SETORES[rowIndex])}
+                          />
+                        </td>
+                        <td>
+                          {SETORES[rowIndex + 7] && (
+                            <Form.Check
+                              type="checkbox"
+                              id={`setor-${SETORES[rowIndex + 7]}`}
+                              label={SETORES[rowIndex + 7]}
+                              checked={selectedSetores.includes(SETORES[rowIndex + 7])}
+                              onChange={() => handleSetorSelection(SETORES[rowIndex + 7])}
+                            />
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="d-flex justify-content-center align-items-center mt-3">
+                <Form.Group className="me-3" style={{ width: '200px' }}>
+                  <Form.Label>Quantidade de Prospects</Form.Label>
+                  <Form.Control
+                    type="number"
+                    min="1"
+                    max="100"
+                    value={quantidadeProspects}
+                    onChange={(e) => setQuantidadeProspects(parseInt(e.target.value) || 1)}
+                  />
+                </Form.Group>
+                <Button 
+                  variant="success" 
+                  onClick={handleIdentificarProspects}
+                  disabled={mapLoading || !mapGerado || selectedSetores.length === 0 || identificandoProspects}
+                >
+                  {identificandoProspects ? 'Identificando...' : (showProspects ? 'Atualizar Prospects' : 'Identificar Prospects')}
+                </Button>
+              </div>
+            </Card.Body>
+          </Card>
+        </Col>
+      </Row>
+
+      {showProspects && prospectsEncontrados.length > 0 && (
+        <Row className="mt-4">
+          <Col>
+            <Card>
+              <Card.Header>Prospects Identificados</Card.Header>
+              <Card.Body>
+                <div style={{ maxHeight: '500px', overflowY: 'auto' }}>
+                  <table className="table table-striped">
+                    <thead>
+                      <tr>
+                        <th>Nome</th>
+                        <th>Endereço</th>
+                        <th>Segmento</th>
+                        <th>Telefone</th>
+                        <th>Ações</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {prospectsEncontrados.map((prospect) => (
+                        <tr key={prospect.id}>
+                          <td>{prospect.nome}</td>
+                          <td>{prospect.endereco}</td>
+                          <td>{prospect.segmento}</td>
+                          <td>{prospect.telefone}</td>
+                          <td>
+                            <Button
+                              variant="danger"
+                              size="sm"
+                              onClick={() => handleExcluirProspect(prospect.id)}
+                            >
+                              Excluir
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </Card.Body>
+            </Card>
+          </Col>
+        </Row>
       )}
 
       {/* Modal para salvar prospects */}

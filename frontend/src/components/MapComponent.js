@@ -1,6 +1,7 @@
 import React from 'react';
-import { GoogleMap, useJsApiLoader, Marker } from '@react-google-maps/api';
+import { GoogleMap, Marker } from '@react-google-maps/api';
 import googleMapsConfig from '../config/googleMapsConfig';
+import { useGoogleMaps } from '../hooks/useGoogleMaps';
 
 const containerStyle = {
   width: '100%',
@@ -27,11 +28,7 @@ function MapComponent({
   onMapClick,
   children
 }) {
-  const { isLoaded, loadError } = useJsApiLoader({
-    id: 'google-map-script',
-    googleMapsApiKey: googleMapsConfig.apiKey,
-    libraries: googleMapsConfig.libraries
-  });
+  const { isLoaded, loadError } = useGoogleMaps();
 
   const [map, setMap] = React.useState(null);
 
